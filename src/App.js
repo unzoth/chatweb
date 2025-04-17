@@ -4,6 +4,7 @@ import ChatWindow from './components/chatwindow/ChatWindow';
 import LoginModal from './components/sidebar/LoginModal';
 import SearchOverlay from './components/searchoverlay/SearchOverlay';
 import Sidebar from './components/sidebar/Sidebar';
+import { Search, Menu,Plus } from 'lucide-react';
 
 function App() {
   // 初始"新对话"模板
@@ -12,7 +13,8 @@ function App() {
     title: '新对话',
     messages: [{
       sender: 'bot',
-      text: { image_url: null, text: '您好，我是智能ai助手。请问有什么可以帮您的吗？' }
+      text: { image_url: null, text: '您好，我是智能ai助手。请问有什么可以帮您的吗？' },
+      reasoning_content:""
     }],
     isMainPage: true,
   };
@@ -25,8 +27,6 @@ function App() {
   const [user, setUser] = useState(null);
   const [isSending, setIsSending] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  
-  // 搜索相关状态
   const [showSearchWindow, setShowSearchWindow] = useState(false);
   const [jumpMessageIndex, setJumpMessageIndex] = useState(null);
 
@@ -71,10 +71,9 @@ function App() {
   // 新增对话
   const handleAddConversation = () => {
     if (currentConversation?.isMainPage) {
-      alert("主界面无法新增对话，请先发送消息以进入正常对话模式！");
+      alert("已是最新对话");
       return;
     }
-    
     setConversations(prev => [...prev, initialMainConversation]);
     setSelectedConversationIndex(conversations.length); // 指向新添加的对话
   };
@@ -89,6 +88,29 @@ function App() {
     setSelectedConversationIndex(0);
   };
 
+  //新对话id
+  const createNewDialog = async (username, title) => {
+    const payload = { username, conversation_title: title };
+    const res = await fetch('http://localhost:8000/new_dialog', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error('创建对话失败');
+    return await res.json();
+  };
+
+  // 向当前对话添加消息
+  const addMessageToCurrentConversation = (message) => {
+    setConversations(prev => {
+      const updated = [...prev];
+      updated[selectedConversationIndex] = {
+        ...updated[selectedConversationIndex],
+        messages: [...updated[selectedConversationIndex].messages, message]
+      };
+      return updated;
+    });
+  };
   // 发送消息
   const handleSendMessage = async (payload) => {
     // 用户未登录时打开登录模态框
@@ -98,15 +120,10 @@ function App() {
     }
     
     // 防止重复发送
-    if (isSending) {
-      console.warn("正在发送中，请等待回复...");
-      return false;
-    }
-    
-    const wasMain = currentConversation.isMainPage;
+    if (isSending)  return false;
     
     // 若当前为主对话，则发送消息后转为非主模式
-    if (wasMain) {
+    if (currentConversation.isMainPage) {
       updateConversationAtIndex(selectedConversationIndex, { isMainPage: false });
     }
     
@@ -129,7 +146,6 @@ function App() {
         dialogId = result.dialog_id;
         updateDialogId(selectedConversationIndex, dialogId);
       } catch (err) {
-        console.error(err);
         alert('创建新对话失败');
         setIsSending(false);
         return false;
@@ -139,7 +155,8 @@ function App() {
     // 添加用户消息
     addMessageToCurrentConversation({
       sender: 'user', 
-      text: { image_url: payload.image_base64 || null, text: payload.text }
+      text: { image_url: payload.image_base64 || null, text: payload.text },
+      reasoning_content: ""
     });
   
     // 准备请求参数
@@ -157,86 +174,141 @@ function App() {
       // 发送请求并处理流式响应
       return await handleStreamingResponse(serverPayload);
     } catch (err) {
-      console.error(err);
       alert(`请求失败: ${err.message || '未知错误'}`);
       return false;
     } finally {
       setIsSending(false);
       moveConversationToTop(selectedConversationIndex);
-      
       // 如果是主对话则在末尾追加一个新的主对话
-      if (wasMain) {
+      if (currentConversation.isMainPage) {
         setConversations(prev => [...prev, initialMainConversation]);
       }
     }
   };
-  
-  // 创建新对话
-  const createNewDialog = async (username, title) => {
-    const payload = { username, conversation_title: title };
-    const res = await fetch('http://localhost:8000/new_dialog', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    
-    if (!res.ok) throw new Error('创建对话失败');
-    return await res.json();
-  };
-  
-  // 向当前对话添加消息
-  const addMessageToCurrentConversation = (message) => {
-    setConversations(prev => {
-      const updated = [...prev];
-      updated[selectedConversationIndex] = {
-        ...updated[selectedConversationIndex],
-        messages: [...updated[selectedConversationIndex].messages, message]
-      };
-      return updated;
-    });
-  };
-  
-  // 处理流式响应
+  //以上修改完成
   const handleStreamingResponse = async (serverPayload) => {
-    const res = await fetch('http://localhost:8000/ask', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(serverPayload),
-    });
-    
-    if (!res.ok) throw new Error("请求失败：" + res.statusText);
-    if (!res.body) throw new Error("响应流为空");
-    
-    // 插入一个空白 AI 回复占位
-    addMessageToCurrentConversation({
-      sender: 'bot',
-      text: { image_url: null, text: "" }
-    });
-    
-    // 读取流式响应
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let done = false, botReply = "";
-    
-    // 读取流式响应并更新最新 AI 消息
-    while (!done) {
-      const { value, done: doneReading } = await reader.read();
-      done = doneReading;
-      const chunk = decoder.decode(value, { stream: !done });
-      botReply += chunk;
-      
-      // 更新最新消息内容
+    try {
+      const res = await fetch('http://localhost:8000/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(serverPayload),
+      });
+      if (!res.ok) throw new Error(res.statusText);
+      if (!res.body) throw new Error("响应流为空");
+
+      addMessageToCurrentConversation({
+        sender: 'bot',
+        text: { image_url: null, text: "" },
+        reasoning_content: ""
+      });
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let done = false, botReply = "", botReasoning = "", buffer = "";
+      let receivedAnyData = false;
+
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        if (!value || value.length === 0) continue;
+        receivedAnyData = true;
+        const chunk = decoder.decode(value, { stream: true });
+        buffer += chunk;
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || "";
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const response = JSON.parse(line);
+            switch(response.type) {
+              case "answer":
+                botReply += response.content || "";
+                break;
+              case "reasoning":
+                botReasoning += response.content || "";
+                break;
+              default:
+                break;
+            }
+            setConversations(prev => {
+              const arr = [...prev];
+              const messages = arr[selectedConversationIndex].messages;
+              if (messages.length > 0) {
+                const lastMsg = messages[messages.length - 1];
+                lastMsg.text.text = botReply;
+                lastMsg.reasoning_content = botReasoning;
+              }
+              return arr;
+            });
+          } catch (e) {
+            // 忽略无效JSON行
+          }
+        }
+      }
+
+      if (buffer.trim()) {
+        try {
+          const response = JSON.parse(buffer);
+          if (response) {
+            if (response.type === "answer") {
+              botReply += response.content || "";
+            } else if (response.type === "reasoning") {
+              botReasoning += response.content || "";
+            }
+            setConversations(prev => {
+              const arr = [...prev];
+              const messages = arr[selectedConversationIndex].messages;
+              const lastMsg = messages[messages.length - 1];
+              lastMsg.text.text = botReply;
+              lastMsg.reasoning_content = botReasoning;
+              return arr;
+            });
+          }
+        } catch (e) {
+          // 忽略最后部分解析错误
+        }
+      }
+
+      if (!receivedAnyData) {
+        setConversations(prev => {
+          const arr = [...prev];
+          const messages = arr[selectedConversationIndex].messages;
+          if (messages.length > 0) {
+            messages[messages.length - 1].text.text = "抱歉，服务器未返回任何数据。请稍后再试。";
+          }
+          return arr;
+        });
+        return false;
+      }
+      if (!botReply.trim() && !botReasoning.trim()) {
+        setConversations(prev => {
+          const arr = [...prev];
+          const messages = arr[selectedConversationIndex].messages;
+          if (messages.length > 0) {
+            messages[messages.length - 1].text.text = "抱歉，服务器未返回有效回答。请稍后再试。";
+          }
+          return arr;
+        });
+        return false;
+      }
+      return true;
+    } catch (error) {
       setConversations(prev => {
         const arr = [...prev];
         const messages = arr[selectedConversationIndex].messages;
-        const lastMsg = messages[messages.length - 1];
-        lastMsg.text.text = botReply;
+        if (messages.length > 0 && messages[messages.length - 1].sender === 'bot') {
+          messages[messages.length - 1].text.text = `处理请求时出错: ${error.message}`;
+        } else {
+          arr[selectedConversationIndex].messages.push({
+            sender: 'bot',
+            text: { image_url: null, text: `处理请求时出错: ${error.message}` },
+            reasoning_content: ""
+          });
+        }
         return arr;
       });
+      return false;
     }
-    
-    if (!botReply.trim()) throw new Error("未收到有效的回答");
-    return true;
   };
   
   // 模型切换、登录相关处理
@@ -261,7 +333,6 @@ function App() {
     else if (globalIndex < selectedConversationIndex) {
       setSelectedConversationIndex(selectedConversationIndex - 1);
     }
-    
     setConversations(updated);
   };
 
@@ -280,12 +351,44 @@ function App() {
     setConversations([initialMainConversation]);
     setSelectedConversationIndex(0);
   };
-
+  const handleLogout = () => {
+    setUser(null);
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    handleResetConversations();
+    setIsLoginModalOpen(true);
+  };
   // 处理搜索结果项点击
   const handleSearchResultClick = (result) => {
     setSelectedConversationIndex(result.conversationIndex);
     setJumpMessageIndex(result.type === 'message' ? result.messageIndex : null);
   };
+//认证
+  useEffect(() => {
+    const savedUser = localStorage.getItem('user');
+    const savedToken = localStorage.getItem('token');
+    if (savedUser && savedToken) {
+      const verifyToken = async () => {
+        try {
+          const response = await fetch('http://localhost:8000/verify_token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: savedUser, token: savedToken }),
+          });
+          if (response.ok) {
+            setUser(savedUser);
+          } else {
+            setIsLoginModalOpen(true);
+          }
+        } catch (error) {
+          setIsLoginModalOpen(true);
+        }
+      };
+      verifyToken();
+    } else {
+      setIsLoginModalOpen(true);
+    }
+  }, []);
 
   // 加载历史对话
   useEffect(() => {
@@ -295,21 +398,17 @@ function App() {
       try {
         const res = await fetch(`http://localhost:8000/dialogs?username=${user}`);
         if (!res.ok) throw new Error("加载对话列表失败");
-        
         const data = await res.json();
-        const historicalConvs = data.conversations.map(mapServerDialogToLocalFormat);
-        
+        const historicalConvs = data.conversations.map(mapServerDialogToLocalFormat)
         setConversations(prev => {
           const main = prev.find(c => c.isMainPage === true) || initialMainConversation;
           return [main, ...historicalConvs];
         });
-        
         setSelectedConversationIndex(0);
       } catch (err) {
         console.error("获取对话列表错误：", err);
       }
     };
-    
     fetchDialogs();
   }, [user]);
   
@@ -328,6 +427,7 @@ function App() {
         text: record.content,
       },
       created_at: record.created_at,
+      reasoning_content: record.reasoning_content || ""
     })),
     isMainPage: false,
   });
@@ -337,44 +437,45 @@ function App() {
     const conv = sidebarConversations[sidebarIndex];
     const globalIndex = conversations.findIndex(c => c.dialog_id === conv.dialog_id);
     const dialog = conversations[globalIndex];
-    
-    // 检查是否是新对话
     if (dialog.dialog_id === null) {
       alert("新对话的标题不能编辑，请先发送消息以保存对话。");
       return;
     }
-    
     updateConversationTitle(globalIndex, newTitle);
     return dialog;
   };
 
   return (
     <div className="app">
+      <nav className="navbar">
+      <div className="navbar-buttons">
+        <button
+          className="toggle-sidebar"
+          onClick={handleToggleSidebar}
+          title="展开侧边栏"
+        >
+          <Menu size={18} strokeWidth={1.5} />
+        </button>
+
+        <button
+          className="add-conversation"
+          onClick={handleAddConversation}
+          title="新增对话"
+        >
+          <Plus size={18} strokeWidth={1.5} />
+        </button>
+
+        <button
+          className="search-button"
+          onClick={() => setShowSearchWindow(true)}
+          title="搜索"
+        >
+          <Search size={18} strokeWidth={1.5} />
+        </button>
+      </div>
+      </nav>
       {/* ========== 左侧栏 ========== */}
       <div className="left-column">
-        <div className="fixed-buttons">
-          <button
-            className="toggle-sidebar"
-            onClick={handleToggleSidebar}
-            title="展开/关闭侧边栏"
-          >
-            ☰
-          </button>
-          <button
-            className="add-conversation"
-            onClick={handleAddConversation}
-            title="新增对话"
-          >
-            ＋
-          </button>
-          <button
-            className="search-button"
-            onClick={() => setShowSearchWindow(true)}
-            title="搜索"
-          >
-            🔍
-          </button>
-        </div>
         
         {/* 侧边栏组件 */}
         <Sidebar
@@ -413,7 +514,6 @@ function App() {
         onClose={handleCloseLoginModal}
         onLoginSuccess={(account) => setUser(account)}
       />
-
       <SearchOverlay 
         isOpen={showSearchWindow}
         onClose={() => setShowSearchWindow(false)}
