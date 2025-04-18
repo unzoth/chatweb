@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 import ChatWindow from './components/chatwindow/ChatWindow';
 import LoginModal from './components/sidebar/LoginModal';
+import ChangePasswordModal from './components/sidebar/ChangePasswordModal';
 import SearchOverlay from './components/searchoverlay/SearchOverlay';
 import Sidebar from './components/sidebar/Sidebar';
 import { Search, Menu,Plus } from 'lucide-react';
@@ -23,6 +24,7 @@ function App() {
   const [conversations, setConversations] = useState([initialMainConversation]);
   const [selectedConversationIndex, setSelectedConversationIndex] = useState(0);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const [selectedModel, setSelectedModel] = useState('model1');
   const [user, setUser] = useState(null);
   const [isSending, setIsSending] = useState(false);
@@ -185,7 +187,7 @@ function App() {
       }
     }
   };
-  //以上修改完成
+  
   const handleStreamingResponse = async (serverPayload) => {
     try {
       const res = await fetch('http://localhost:8000/ask', {
@@ -195,18 +197,15 @@ function App() {
       });
       if (!res.ok) throw new Error(res.statusText);
       if (!res.body) throw new Error("响应流为空");
-
       addMessageToCurrentConversation({
         sender: 'bot',
         text: { image_url: null, text: "" },
         reasoning_content: ""
       });
-
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let done = false, botReply = "", botReasoning = "", buffer = "";
       let receivedAnyData = false;
-
       while (!done) {
         const { value, done: doneReading } = await reader.read();
         done = doneReading;
@@ -245,7 +244,6 @@ function App() {
           }
         }
       }
-
       if (buffer.trim()) {
         try {
           const response = JSON.parse(buffer);
@@ -315,6 +313,10 @@ function App() {
   const handleSelectModel = (model) => setSelectedModel(model);
   const handleLoginClick = () => setIsLoginModalOpen(true);
   const handleCloseLoginModal = () => setIsLoginModalOpen(false);
+  // 打开修改密码模态框
+  const handleChangePasswordClick = () => setIsChangePasswordModalOpen(true);
+  const handleClosePasswordModal = () => setIsChangePasswordModalOpen(false);
+
 
   // 删除对话
   const handleDeleteConversation = (globalIndex) => {
@@ -446,73 +448,80 @@ function App() {
   };
 
   return (
-    <div className="app">
+    <div className="app-container">
+      {/* 顶部导航栏 */}
       <nav className="navbar">
-      <div className="navbar-buttons">
-        <button
-          className="toggle-sidebar"
-          onClick={handleToggleSidebar}
-          title="展开侧边栏"
-        >
-          <Menu size={18} strokeWidth={1.5} />
-        </button>
-
-        <button
-          className="add-conversation"
-          onClick={handleAddConversation}
-          title="新增对话"
-        >
-          <Plus size={18} strokeWidth={1.5} />
-        </button>
-
-        <button
-          className="search-button"
-          onClick={() => setShowSearchWindow(true)}
-          title="搜索"
-        >
-          <Search size={18} strokeWidth={1.5} />
-        </button>
-      </div>
+        <div className="navbar-buttons">
+          <button
+            className="toggle-sidebar"
+            onClick={handleToggleSidebar}
+            title="展开侧边栏"
+          >
+            <Menu size={18} strokeWidth={1.5} />
+          </button>
+  
+          <button
+            className="add-conversation"
+            onClick={handleAddConversation}
+            title="新增对话"
+          >
+            <Plus size={18} strokeWidth={1.5} />
+          </button>
+  
+          <button
+            className="search-button"
+            onClick={() => setShowSearchWindow(true)}
+            title="搜索"
+          >
+            <Search size={18} strokeWidth={1.5} />
+          </button>
+        </div>
       </nav>
-      {/* ========== 左侧栏 ========== */}
-      <div className="left-column">
+      
+      <div className="app">
+        {/* ========== 左侧栏 ========== */}
+        <div className="left-column">
+          <Sidebar
+            isOpen={isSidebarOpen}
+            conversations={sidebarConversations}
+            onSelectConversation={handleSelectConversationFromSidebar}
+            onDeleteConversation={handleDeleteConversationFromSidebar}
+            onEditTitle={handleEditTitle}
+            selectedConversationIndex={selectedSidebarIndex}
+            user={user}
+            onLoginClick={handleLoginClick}
+            onLogout={handleLogout}
+            onChangePassword={handleChangePasswordClick}
+          />
+        </div>
+  
+        {/* ========== 中间聊天区域 ========== */}
+        <div className="center-column">
+          <ChatWindow
+            messages={currentConversation.messages}
+            onSendMessage={handleSendMessage}
+            onSelectModel={handleSelectModel}
+            isSending={isSending}
+            jumpMessageIndex={jumpMessageIndex}
+            dialogId={currentConversation.dialog_id}
+            user={user}
+          />
+        </div>
         
-        {/* 侧边栏组件 */}
-        <Sidebar
-          isOpen={isSidebarOpen}
-          conversations={sidebarConversations}
-          onSelectConversation={handleSelectConversationFromSidebar}
-          onDeleteConversation={handleDeleteConversationFromSidebar}
-          onEditTitle={handleEditTitle}
-          selectedConversationIndex={selectedSidebarIndex}
-          user={user}
-          onLoginClick={handleLoginClick}
-          onLogout={() => setUser(null)}
-          onResetConversations={handleResetConversations}
-        />
-      </div>
-
-      {/* ========== 中间聊天区域 ========== */}
-      <div className="center-column">
-        <ChatWindow
-          messages={currentConversation.messages}
-          onSendMessage={handleSendMessage}
-          onSelectModel={handleSelectModel}
-          isSending={isSending}
-          jumpMessageIndex={jumpMessageIndex}
-          dialogId={currentConversation.dialog_id}
-          user={user}
-        />
+        {/* ========== 右侧空白区域 ========== */}
+        <div className="right-column"></div>
       </div>
       
-      {/* ========== 右侧空白区域 ========== */}
-      <div className="right-column"></div>
-      
-      {/* ========== 模态框组件 ========== */}
       <LoginModal 
         isOpen={isLoginModalOpen} 
         onClose={handleCloseLoginModal}
         onLoginSuccess={(account) => setUser(account)}
+      />
+      <ChangePasswordModal 
+        isOpen={isChangePasswordModalOpen}
+        onClose={handleClosePasswordModal}
+        handleLogout={handleLogout}
+        username={user}
       />
       <SearchOverlay 
         isOpen={showSearchWindow}

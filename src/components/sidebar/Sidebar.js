@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import ConversationList from './ConversationList';
+import './Sidebar.css'
 
 /**
  * 侧边栏组件
@@ -26,14 +27,8 @@ const Sidebar = ({
   user,
   onLoginClick,
   onLogout,
-  onResetConversations
+  onChangePassword
 }) => {
-  // 退出登录的处理函数
-  const handleLogout = () => {
-    onLogout();
-    onResetConversations();
-  };
-  
   // 处理编辑对话标题
   const handleEditConversationTitle = async (filteredIndex, newTitle) => {
     if (newTitle.length > 15) {
@@ -78,7 +73,6 @@ const Sidebar = ({
         return;
       }
     }
-    
     // 调用父组件的删除处理
     onDeleteConversation(filteredIndex);
   };
@@ -100,12 +94,20 @@ const Sidebar = ({
           {user ? (
             <div className="user-container">
               <span className="welcome-text">欢迎 <strong>{user}</strong>!</span>
-              <button
-                className="logout-button"
-                onClick={handleLogout}
-              >
-                退出
-              </button>
+              <div className="user-actions">
+                <button
+                  className="change-password-button"
+                  onClick={onChangePassword}
+                >
+                  修改密码
+                </button>
+                <button
+                  className="logout-button"
+                  onClick={onLogout}
+                >
+                  退出
+                </button>
+              </div>
             </div>
           ) : (
             <div className="user-container">
@@ -115,7 +117,7 @@ const Sidebar = ({
             </div>
           )}
         </div>
-      </div>
+      </div>     
     </div>
   );
 };

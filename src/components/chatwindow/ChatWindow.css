@@ -1,0 +1,41 @@
+.chat-window {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 内部容器，宽度控制为 50vw 居中显示 */
+.chat-inner-content {
+  width: 50vw;
+  margin: 0 auto;
+  height: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+
+/* 图片预览区域 */
+.image-preview {
+    position: relative;
+    margin-bottom: 8px;
+  }
+  
+  .image-preview img {
+    max-height: 64px;
+    width: auto;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  
+  .image-preview .cancel-image {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background-color: rgba(0,0,0,0.6);
+    color: #fff;
+    border: none;
+    border-radius: 0 4px 0 4px;
+    cursor: pointer;
+    padding: 2px 6px;
+  }

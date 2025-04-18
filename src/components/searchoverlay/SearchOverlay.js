@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './SearchOverlay.css'
 
 const SearchOverlay = ({ 
   isOpen, 

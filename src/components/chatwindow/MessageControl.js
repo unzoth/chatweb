@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ModelSelector from './ModelSelector';
+import {X,ImagePlus}  from 'lucide-react';
+import './MessageControl.css'
 
 function MessageControl({ 
   onSendMessage, 
@@ -62,7 +64,6 @@ function MessageControl({
   const removeImage = () => {
     setImageBase64(null);
     setImagePath(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
     updateMessagesHeight();
   };
 
@@ -71,13 +72,9 @@ function MessageControl({
     if (!input.trim() && !imageBase64) return;
     const payload = { text: input, image_base64: imageBase64, image_path: imagePath };
     setInput('');
+    removeImage();
     setIsStreaming(true);
-    const sent = await onSendMessage(payload);
-    if (sent) {
-      setImageBase64(null);
-      setImagePath(null);
-      updateMessagesHeight();
-    }
+    await onSendMessage(payload);
     setIsStreaming(false);
   };
 
@@ -109,11 +106,18 @@ function MessageControl({
             style={{ cursor: 'pointer' }}
             onClick={() => openModal(imageBase64)}
           />
-          <button type="button" className="cancel-image" onClick={removeImage}>
-            ×
+          <button
+            type="button"
+            className="cancel-image"
+            onClick={removeImage}
+            title="取消图片"
+            aria-label="取消图片"
+          >
+            <X size={18} strokeWidth={1.5} />
           </button>
         </div>
       )}
+
       <textarea
         ref={textareaRef}
         value={input}
@@ -126,18 +130,33 @@ function MessageControl({
         disabled={isSending}
         className="text-input"
       />
+
       <div className="bottom-controls">
         <div className="left-controls">
           <ModelSelector onSelectModel={onSelectModel} />
+
+          <label
+            htmlFor="file-upload"
+            className="upload-button"
+            title="上传图片"
+            aria-label="上传图片"
+            style={{ cursor: isSending ? 'not-allowed' : 'pointer' }}
+          >
+            <ImagePlus size={18} strokeWidth={1.5} />
+          </label>
+
           <input
+            id="file-upload"
             ref={fileInputRef}
             type="file"
             accept="image/*"
             onChange={handleFileChange}
             disabled={isSending}
             className="file-input"
+            style={{ display: 'none' }}
           />
         </div>
+
         <div className="right-controls">
           <button
             type="button"

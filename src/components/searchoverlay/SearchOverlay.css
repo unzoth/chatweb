@@ -1,0 +1,67 @@
+.search-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  
+  /* 搜索窗口主体 */
+  .search-window {
+    background: #fff;
+    width: 80%;
+    max-width: 600px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  
+  /* 搜索窗口头部 */
+  .search-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    font-size: 18px;
+  }
+  
+  /* 取消按钮样式 */
+  .search-cancel {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #007bff;
+    font-size: 16px;
+  }
+  
+  /* 搜索窗口主体部分 */
+  .search-body {
+    padding: 10px;
+  }
+  
+  /* 搜索输入框样式 */
+  .search-input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  
+  /* 搜索结果区域样式 */
+  .search-results {
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  
+  .search-result-item {
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 5px;
+    margin-bottom: 5px;
+  }

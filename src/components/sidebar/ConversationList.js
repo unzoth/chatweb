@@ -1,4 +1,6 @@
+import { Pencil, Trash } from 'lucide-react';
 import React, { useState } from 'react';
+import './ConversationList.css'
 
 const ConversationList = ({
   conversations,
@@ -65,7 +67,7 @@ const ConversationList = ({
                 startEditing(index, conversation.title);
               }}
             >
-              ✎
+            <Pencil size={18} strokeWidth={1.5}></Pencil>
             </span>
             {/* 删除按钮 */}
             <span 
@@ -75,7 +77,7 @@ const ConversationList = ({
                 onDeleteConversation(index);
               }}
             >
-              🗑️
+              <Trash size={18} strokeWidth={1.5}></Trash>
             </span>
           </li>
         ))}

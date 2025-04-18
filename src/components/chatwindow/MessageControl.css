@@ -1,0 +1,60 @@
+/* 消息输入区域 */
+.message-input-form {
+    width: 100%;
+    border-top: 1px solid #ddd;
+    background-color: #fafafa;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* 输入框 */
+  .message-input-form .text-input {
+    width: 100%;
+    min-height: 2em;
+    max-height: calc(2em * 9);
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    resize: none;
+    overflow-y: auto;
+    transition: border-color 0.3s;
+    margin-bottom: 10px;
+  }
+  
+  .message-input-form .text-input:focus {
+    border-color: #007bff;
+  }
+  
+  /* 底部控件区域 */
+  .bottom-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* 左侧控件 */
+.left-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  /* 右侧控件 */
+  .right-controls .send-button {
+    padding: 10px 15px;
+    border: none;
+    background-color: #007bff;
+    color: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  .right-controls .send-button:hover {
+    background-color: #0056b3;
+  }
+  
+  /* 文件上传输入框 */
+  .file-input {
+    cursor: pointer;
+  }

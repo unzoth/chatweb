@@ -1,0 +1,144 @@
+/* 对话列表区域 */
+.sidebar-content {
+    position: absolute;
+    top: 60px;
+    left: 0;
+    right: 0;
+    bottom: 100px;
+    overflow-y: auto;
+  }
+  
+  /* 登录模块（侧边栏底部） */
+  .sidebar-footer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 100px;
+    background-color: #f8f9fa;
+    box-sizing: border-box;
+  }
+  
+  /* 分割线 */
+  .sidebar-divider {
+    width: 100%;
+    margin-bottom: 10px;
+    border: none;
+    border-top: 1px solid #ddd;
+  }
+  
+  .user-container {
+    text-align: center;
+  }
+  
+  /* 登录按钮 */
+  .login-button {
+    margin-top: 10px;
+    padding: 12px 20px;
+    border: 1px solid #007bff;
+    background-color: transparent;
+    color: #007bff;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  
+  .login-button:hover {
+    background-color: #007bff;
+    color: #fff;
+  }
+  
+  /* 欢迎文本 */
+  .welcome-text {
+    font-size: 20px;
+    color: #0056b3;
+    font-weight: bold;
+  }
+  
+  .login-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  
+  .login-modal {
+    background: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    width: 320px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  
+  .login-modal h3 {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  .form-group {
+    margin-bottom: 15px;
+  }
+  
+  .form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+  
+  .form-group input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  
+  .button-group {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+  }
+  
+  .submit-btn,
+  .cancel-btn {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  .submit-btn {
+    background-color: #28a745;
+    color: #fff;
+    margin-right: 10px;
+  }
+  .submit-btn:hover {
+    background-color: #218838;
+  }
+  
+  .cancel-btn {
+    background-color: #dc3545;
+    color: #fff;
+  }
+  .cancel-btn:hover {
+    background-color: #c82333;
+  }
+  
+  .switch-mode {
+    text-align: center;
+    font-size: 14px;
+  }
+  
+  .switch-mode span {
+    color: #007bff;
+    cursor: pointer;
+    margin-left: 5px;
+    text-decoration: underline;
+  }

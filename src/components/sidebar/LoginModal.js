@@ -6,6 +6,7 @@ function LoginModal({ isOpen, onClose, onLoginSuccess }) {
   const [account, setAccount] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true); // 默认记住登录状态
 
   // 账号只能包含字母和数字
   const handleAccountChange = (e) => {
@@ -38,6 +39,13 @@ function LoginModal({ isOpen, onClose, onLoginSuccess }) {
           username: account,
           password,
         });
+        
+        // 如果选择了记住登录状态，保存用户信息到本地
+        if (rememberMe && data.token) {
+          localStorage.setItem('user', account);
+          localStorage.setItem('token', data.token);
+        }
+        
         alert(data.message);
         onLoginSuccess(account);
         resetForm();
@@ -52,6 +60,13 @@ function LoginModal({ isOpen, onClose, onLoginSuccess }) {
           username: account,
           password,
         });
+        
+        // 如果选择了记住登录状态，保存用户信息到本地
+        if (rememberMe && data.token) {
+          localStorage.setItem('user', account);
+          localStorage.setItem('token', data.token);
+        }
+        
         alert(data.message);
         onLoginSuccess(account);
         resetForm();
@@ -99,6 +114,16 @@ function LoginModal({ isOpen, onClose, onLoginSuccess }) {
             />
           </div>
         )}
+
+        <div className="form-group checkbox">
+          <input
+            type="checkbox"
+            id="rememberMe"
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
+          />
+          <label htmlFor="rememberMe">记住登录状态</label>
+        </div>
 
         <div className="button-group">
           <button className="submit-btn" onClick={handleSubmit}>

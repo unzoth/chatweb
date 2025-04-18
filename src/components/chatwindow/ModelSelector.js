@@ -1,4 +1,5 @@
 import React from 'react';
+import './ModelSelector.css'
 
 // 模型选项定义
 const models = [

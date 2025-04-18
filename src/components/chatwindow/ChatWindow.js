@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import MessageList from './MessageList';
 import MessageControl from './MessageControl';
+import './ChatWindow.css'
 
 function ChatWindow({ messages, onSendMessage, onSelectModel, isSending, jumpMessageIndex, dialogId, user }) {
   // 消息区域高度、滚动状态与图片预览状态

@@ -1,0 +1,60 @@
+/* 对话列表 */
+.conversation-list {
+    overflow-y: auto;
+    margin-bottom: 20px;
+  }
+  
+  .conversation-header {
+    margin-bottom: 10px;
+  }
+  
+  .conversation-header button {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    background-color: #28a745;
+    color: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  .conversation-header button:hover {
+    background-color: #218838;
+  }
+  
+  .conversation-list ul {
+    list-style: none;
+  }
+  
+  .conversation-item {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.3s;
+  }
+  
+  .conversation-item:hover {
+    background-color: #f0f0f0;
+  }
+  
+  .conversation-item.selected {
+    background-color: #e9ecef;
+  }
+  
+  .conversation-title {
+    flex: 1;
+    margin-right: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .delete-button {
+    font-size: 18px;
+    color: #dc3545;
+    cursor: pointer;
+  }
