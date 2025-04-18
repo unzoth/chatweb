@@ -133,7 +133,7 @@ function MessageControl({
 
       <div className="bottom-controls">
         <div className="left-controls">
-          <ModelSelector onSelectModel={onSelectModel} />
+          <ModelSelector onSelectModel={onSelectModel} user={user}/>
 
           <label
             htmlFor="file-upload"

@@ -2,40 +2,79 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Pencil, Trash } from 'lucide-react';
 import './ModelSelector.css';
 
-// 初始模型选项定义
+// 初始模型选项定义（这些是系统默认模型，不可修改和删除）
 const initialModels = [
-  { value: "model1", label: "deepseek v3" },
-  { value: "model2", label: "deepseek R1" },
-  { value: "model3", label: "百度千帆" },
-  { value: "model4", label: "通义千问" },
-  { value: "model5", label: "腾讯混元" },
-  { value: "model6", label: "多模态" },
+  { value: "model1", label: "deepseek v3", isDefault: true },
+  { value: "model2", label: "deepseek R1", isDefault: true },
+  { value: "model3", label: "百度千帆", isDefault: true },
+  { value: "model4", label: "通义千问", isDefault: true },
+  { value: "model5", label: "腾讯混元", isDefault: true },
+  { value: "model6", label: "多模态", isDefault: true },
 ];
 
 // 最大允许的模型数量
 const MAX_MODELS = 15;
 
-function ModelSelector({ onSelectModel }) {
-  const [models, setModels] = useState(() => {
-    // 从本地存储加载自定义模型
-    const savedModels = localStorage.getItem('customModels');
-    return savedModels ? [...initialModels, ...JSON.parse(savedModels)] : initialModels;
-  });
-  
+function ModelSelector({ onSelectModel, user }) {
+  const [models, setModels] = useState(initialModels);
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedModel, setSelectedModel] = useState(models[0]);
+  const [selectedModel, setSelectedModel] = useState(initialModels[0]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingModel, setEditingModel] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
   
   // 新模型表单数据
   const [newModel, setNewModel] = useState({
-    url: '',
-    model: '',
+    model_url: '',
+    model_name: '',
     name: '',
-    key: ''
+    api_key: ''
   });
   
   const dropdownRef = useRef(null);
+  
+  // 从API加载用户模型
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchUserModels = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        const response = await fetch(`http://localhost:8000/models?username=${user}`);
+        
+        if (!response.ok) {
+          throw new Error('获取模型列表失败');
+        }
+        
+        const data = await response.json();
+        
+        // 将API返回的模型转换为组件格式
+        const userModels = data.models.map(model => ({
+          value: `custom-${model.model_id}`,
+          label: model.name,
+          model_id: model.model_id,
+          model_name: model.model_name,
+          model_url: model.model_url,
+          api_key: model.api_key,
+          isCustom: true
+        }));
+        
+        // 合并默认模型和用户自定义模型
+        setModels([...initialModels, ...userModels]);
+        
+      } catch (err) {
+        console.error('加载用户模型失败:', err);
+        setError('加载用户模型失败，请刷新重试');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchUserModels();
+  }, [user]);
   
   // 点击外部关闭下拉菜单
   useEffect(() => {
@@ -67,7 +106,7 @@ function ModelSelector({ onSelectModel }) {
       
       setShowAddModal(true);
       setEditingModel(null);
-      setNewModel({ url: '', model: '', name: '', key: '' });
+      setNewModel({ model_url: '', model_name: '', name: '', api_key: '' });
     } else {
       setSelectedModel(model);
       onSelectModel(model.value);
@@ -84,123 +123,165 @@ function ModelSelector({ onSelectModel }) {
     });
   };
   
-  // 保存新模型
-  const handleSaveModel = () => {
+  // 保存新模型到API
+  const handleSaveModel = async () => {
     // 检查所有字段是否已填写
-    if (!newModel.url || !newModel.model || !newModel.name || !newModel.key) {
+    if (!newModel.model_url || !newModel.model_name || !newModel.name || !newModel.api_key) {
       alert('请填写所有字段');
       return;
     }
     
-    // 获取现有自定义模型
-    const existingCustomModels = localStorage.getItem('customModels') 
-      ? JSON.parse(localStorage.getItem('customModels')) 
-      : [];
-    
-    let updatedCustomModels;
-    
-    if (editingModel) {
-      // 更新现有模型
-      updatedCustomModels = existingCustomModels.map(model => 
-        model.value === editingModel.value 
-          ? {
-              ...model,
-              label: newModel.name,
-              url: newModel.url,
-              model: newModel.model,
-              key: newModel.key
-            }
-          : model
-      );
-    } else {
-      // 检查模型总数是否达到上限
-      if (initialModels.length + existingCustomModels.length >= MAX_MODELS) {
-        alert(`模型数量已达到上限(${MAX_MODELS})，无法继续添加。请先删除部分模型后再试。`);
-        return;
+    try {
+      let response;
+      let modelData;
+      
+      if (editingModel) {
+        // 更新现有模型
+        response = await fetch(`http://localhost:8000/models/${editingModel.model_id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model_name: newModel.model_name,
+            model_url: newModel.model_url,
+            api_key: newModel.api_key,
+            name: newModel.name
+          })
+        });
+      } else {
+        // 添加新模型
+        response = await fetch(`http://localhost:8000/models?username=${user}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model_name: newModel.model_name, 
+            model_url: newModel.model_url,
+            api_key: newModel.api_key,
+            name: newModel.name
+          })
+        });
       }
       
-      // 添加新模型
-      const customModel = {
-        value: `custom-${Date.now()}`,
-        label: newModel.name,
-        url: newModel.url,
-        model: newModel.model,
-        key: newModel.key,
-        isCustom: true // 标记为自定义模型
-      };
-      updatedCustomModels = [...existingCustomModels, customModel];
-    }
-    
-    // 保存到本地存储
-    localStorage.setItem('customModels', JSON.stringify(updatedCustomModels));
-    
-    // 更新模型列表
-    const updatedModels = [...initialModels, ...updatedCustomModels];
-    setModels(updatedModels);
-    
-    // 如果正在编辑的是当前选中的模型，更新选中状态
-    if (editingModel && editingModel.value === selectedModel.value) {
-      const updatedModel = updatedCustomModels.find(model => model.value === editingModel.value);
-      if (updatedModel) {
-        setSelectedModel(updatedModel);
+      if (!response.ok) {
+        throw new Error(editingModel ? '更新模型失败' : '添加模型失败');
       }
+      
+      modelData = await response.json();
+      
+      // 重新加载所有模型
+      const modelsResponse = await fetch(`http://localhost:8000/models?username=${user}`);
+      
+      if (!modelsResponse.ok) {
+        throw new Error('刷新模型列表失败');
+      }
+      
+      const modelsData = await modelsResponse.json();
+      
+      // 更新模型列表
+      const userModels = modelsData.models.map(model => ({
+        value: `custom-${model.model_id}`,
+        label: model.name,
+        model_id: model.model_id,
+        model_name: model.model_name,
+        model_url: model.model_url,
+        api_key: model.api_key,
+        isCustom: true
+      }));
+      
+      setModels([...initialModels, ...userModels]);
+      
+      // 如果添加了新模型，自动选择它
+      if (!editingModel) {
+        const newAddedModel = userModels.find(m => m.model_id === modelData.model_id);
+        if (newAddedModel) {
+          setSelectedModel(newAddedModel);
+          onSelectModel(newAddedModel.value);
+        }
+      }
+      
+      // 关闭模态窗口并清空表单
+      setShowAddModal(false);
+      setEditingModel(null);
+      setNewModel({ model_url: '', model_name: '', name: '', api_key: '' });
+      
+    } catch (err) {
+      console.error('保存模型失败:', err);
+      alert(err.message || '操作失败，请重试');
     }
-    
-    // 关闭模态窗口并清空表单
-    setShowAddModal(false);
-    setEditingModel(null);
-    setNewModel({ url: '', model: '', name: '', key: '' });
   };
   
-  // 编辑模型函数修改
-const handleEditModel = (model, event) => {
-  // 阻止事件冒泡，防止触发选择模型
-  if (event) {
-    event.preventDefault();
-    event.stopPropagation();
-  }
-  // 重要：延迟设置状态，确保React状态更新顺序正确
-  setTimeout(() => {
-    setEditingModel(model);
-    setNewModel({
-      url: model.url || '',
-      model: model.model || '',
-      name: model.label || '',
-      key: model.key || ''
-    });
-    setShowAddModal(true);
-  }, 0);
-};
+  // 编辑模型
+  const handleEditModel = (model, event) => {
+    // 阻止事件冒泡，防止触发选择模型
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    
+    // 重要：延迟设置状态，确保React状态更新顺序正确
+    setTimeout(() => {
+      setEditingModel(model);
+      setNewModel({
+        model_url: model.model_url || '',
+        model_name: model.model_name || '',
+        name: model.label || '',
+        api_key: model.api_key || ''
+      });
+      setShowAddModal(true);
+    }, 0);
+  };
   
   // 删除模型
-  const handleDeleteModel = (modelToDelete, event) => {
+  const handleDeleteModel = async (modelToDelete, event) => {
     event.stopPropagation();
     
     // 确认删除
     const confirmDelete = window.confirm(`确定要删除模型 "${modelToDelete.label}" 吗？`);
     if (!confirmDelete) return;
     
-    // 获取现有自定义模型
-    const existingCustomModels = localStorage.getItem('customModels') 
-      ? JSON.parse(localStorage.getItem('customModels')) 
-      : [];
-    
-    // 过滤掉要删除的模型
-    const updatedCustomModels = existingCustomModels.filter(
-      model => model.value !== modelToDelete.value
-    );
-    
-    // 保存到本地存储
-    localStorage.setItem('customModels', JSON.stringify(updatedCustomModels));
-    
-    // 更新模型列表
-    const updatedModels = [...initialModels, ...updatedCustomModels];
-    setModels(updatedModels);
-    
-    // 如果删除的是当前选中的模型，切换到第一个默认模型
-    if (selectedModel.value === modelToDelete.value) {
-      setSelectedModel(initialModels[0]);
-      onSelectModel(initialModels[0].value);
+    try {
+      const response = await fetch(`http://localhost:8000/models/${modelToDelete.model_id}?username=${user}`, {
+        method: 'DELETE'
+      });
+      
+      if (!response.ok) {
+        throw new Error('删除模型失败');
+      }
+      
+      // 刷新模型列表
+      const modelsResponse = await fetch(`http://localhost:8000/models?username=${user}`);
+      
+      if (!modelsResponse.ok) {
+        throw new Error('刷新模型列表失败');
+      }
+      
+      const modelsData = await modelsResponse.json();
+      
+      // 更新模型列表
+      const userModels = modelsData.models.map(model => ({
+        value: `custom-${model.model_id}`,
+        label: model.name,
+        model_id: model.model_id,
+        model_name: model.model_name, 
+        model_url: model.model_url,
+        api_key: model.api_key,
+        isCustom: true
+      }));
+      
+      setModels([...initialModels, ...userModels]);
+      
+      // 如果删除的是当前选中的模型，切换到第一个默认模型
+      if (selectedModel.value === modelToDelete.value) {
+        setSelectedModel(initialModels[0]);
+        onSelectModel(initialModels[0].value);
+      }
+      
+    } catch (err) {
+      console.error('删除模型失败:', err);
+      alert(err.message || '删除失败，请重试');
     }
   };
   
@@ -208,25 +289,22 @@ const handleEditModel = (model, event) => {
   const handleCancel = () => {
     setShowAddModal(false);
     setEditingModel(null);
-    setNewModel({ url: '', model: '', name: '', key: '' });
-  };
-  
-  // 判断模型是否为自定义模型
-  const isCustomModel = (model) => {
-    return model.isCustom || model.value.startsWith('custom-');
+    setNewModel({ model_url: '', model_name: '', name: '', api_key: '' });
   };
   
   // 判断是否显示"添加模型"选项
-  const showAddModelOption = models.length < MAX_MODELS;
+  const showAddModelOption = models.length < MAX_MODELS && user;
   
   return (
     <div className="model-selector-container" ref={dropdownRef}>
       <div className="selected-model" onClick={() => setIsOpen(!isOpen)}>
-        {selectedModel.label}
+        {isLoading ? '加载中...' : selectedModel.label}
       </div>
       
       {isOpen && (
         <div className="model-dropdown">
+          {error && <div className="error-message">{error}</div>}
+          
           {models.map((model) => (
             <div 
               key={model.value} 
@@ -234,7 +312,7 @@ const handleEditModel = (model, event) => {
               onClick={(e) => handleSelectModel(model, e)}
             >
               <span className="model-label">{model.label}</span>
-              {isCustomModel(model) && (
+              {model.isCustom && (
                 <div className="model-actions">
                   <button 
                     className="edit-button" 
@@ -254,6 +332,7 @@ const handleEditModel = (model, event) => {
               )}
             </div>
           ))}
+          
           {showAddModelOption && (
             <div 
               className="model-option add-model-option" 
@@ -278,8 +357,8 @@ const handleEditModel = (model, event) => {
               <label>地址</label>
               <input 
                 type="text" 
-                name="url" 
-                value={newModel.url} 
+                name="model_url" 
+                value={newModel.model_url} 
                 onChange={handleInputChange} 
                 placeholder="请输入API地址"
               />
@@ -288,8 +367,8 @@ const handleEditModel = (model, event) => {
               <label>模型</label>
               <input 
                 type="text" 
-                name="model" 
-                value={newModel.model} 
+                name="model_name" 
+                value={newModel.model_name} 
                 onChange={handleInputChange} 
                 placeholder="请输入模型标识符"
               />
@@ -308,8 +387,8 @@ const handleEditModel = (model, event) => {
               <label>密钥</label>
               <input 
                 type="text" 
-                name="key" 
-                value={newModel.key} 
+                name="api_key" 
+                value={newModel.api_key} 
                 onChange={handleInputChange} 
                 placeholder="请输入API密钥"
               />
@@ -319,7 +398,7 @@ const handleEditModel = (model, event) => {
               <button 
                 className="save-button" 
                 onClick={handleSaveModel}
-                disabled={!newModel.url || !newModel.model || !newModel.name || !newModel.key}
+                disabled={!newModel.model_url || !newModel.model_name || !newModel.name || !newModel.api_key}
               >
                 保存
               </button>
